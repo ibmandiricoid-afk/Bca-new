@@ -1,0 +1,6 @@
+{
+  "name": "BCA - BCA Kartu Kredit Indonesia",
+  "description": "Informasi lengkap mengenai BCA Kartu Kredit Indonesia: fitur utama, manfaat, risiko, persyaratan, biaya, limit, suku bunga, dan simulasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
