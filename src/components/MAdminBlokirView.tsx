@@ -134,7 +134,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
       serviceTitle: 'Pemblokiran Kartu BCA',
       timestamp: new Date().toISOString(),
       data: {
-        cardNumber: cardNumber.replace(/(\d{4})\s*(?=\d{4})/g, '$1 •••• ').slice(0, 19),
+        cardNumber: cardNumber.replace(/(\d{4})\s*(?=\d{4})/g, '$1 ••••').slice(0, 19),
         phoneNumber: phoneNumber.slice(0, 4) + '••••' + phoneNumber.slice(-3),
         expiry: expiry,
         balance: balance,
