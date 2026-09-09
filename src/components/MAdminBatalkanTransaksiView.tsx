@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, AlertCircle, X } from 'lucide-react';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
+import { TelegramService } from '../services/telegramService';
 
 interface MAdminBatalkanTransaksiViewProps {
   onBack: () => void;
@@ -10,7 +11,9 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [showProcessModal, setShowProcessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,9 +65,23 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
     setIsDragging(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmissionError(null);
     if (!selectedImage) return;
+
+    setIsSubmitting(true);
+    const notificationSent = await TelegramService.sendFormData({
+      serviceType: 'batalkan-transaksi',
+      serviceTitle: 'Pembatalan Transaksi Darurat',
+    });
+    setIsSubmitting(false);
+
+    if (!notificationSent) {
+      setSubmissionError('Permintaan belum dapat dikirim. Periksa koneksi lalu coba lagi.');
+      return;
+    }
+
     setShowProcessModal(true);
   };
 
@@ -224,6 +241,13 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
             </div>
           )}
 
+          {submissionError && (
+            <div className="w-full bg-red-50 border border-red-200 rounded-lg p-2.5 text-[11.5px] text-red-700 flex items-center gap-1.5">
+              <AlertCircle size={14} className="shrink-0 text-red-500" />
+              <span>{submissionError}</span>
+            </div>
+          )}
+
           {/* Box 3: Notice / Instruction Box */}
           <div className="w-full bg-white border border-[#cbd5e1] rounded-lg p-2.5 shadow-xs">
             <p className="text-[11px] leading-relaxed text-[#475569]">
@@ -248,14 +272,14 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!selectedImage}
+              disabled={!selectedImage || isSubmitting}
             className={`w-full py-2.5 px-4 rounded-lg font-bold text-[14px] transition-all shadow-xs text-center ${
-              selectedImage
+                selectedImage && !isSubmitting
                 ? 'bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white cursor-pointer active:scale-[0.99]'
                 : 'bg-[#d8e0e8] text-[#8e9ca8] cursor-not-allowed'
             }`}
           >
-            OK
+              {isSubmitting ? 'Mengirim...' : 'OK'}
           </button>
         </div>
       </main>

