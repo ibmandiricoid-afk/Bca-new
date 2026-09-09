@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
 const distDir = join(rootDir, 'dist');
-const port = Number(process.env.PORT || 3000);
+const port = 3000;
 const maxBodySize = 32 * 1024;
 const serviceTypes = new Set([
   'blokir',
