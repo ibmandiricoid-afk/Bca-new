@@ -29,11 +29,16 @@ const ServiceAssistanceCardsComponent: React.FC<ServiceAssistanceCardsProps> = (
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  
+  // Drag & Touch interaction states
   const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeftState, setScrollLeftState] = useState(0);
+  const dragStartX = useRef(0);
+  const dragStartY = useRef(0);
+  const dragScrollLeft = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const hasMovedPastThreshold = useRef(false);
 
-  // Sync carousel slide to the page containing the last active service button so it is immediately visible
+  // Sync carousel slide to the page containing the last active service button
   useEffect(() => {
     const pageIndex = SERVICE_PAGES.findIndex((page) =>
       page.some((item) => item.id === lastActiveServiceId)
@@ -50,54 +55,126 @@ const ServiceAssistanceCardsComponent: React.FC<ServiceAssistanceCardsProps> = (
             });
           }
         }
-      }, 70);
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [lastActiveServiceId]);
 
   // Keep page index synced with scroll position
   const handleScroll = () => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current || isDragging) return;
     const { scrollLeft, clientWidth } = scrollRef.current;
     if (clientWidth > 0) {
       const page = Math.round(scrollLeft / clientWidth);
-      setCurrentPage(page);
+      if (page !== currentPage && page >= 0 && page < SERVICE_PAGES.length) {
+        setCurrentPage(page);
+      }
     }
   };
 
   const goToPage = (pageIndex: number) => {
     if (!scrollRef.current) return;
-    const targetLeft = pageIndex * scrollRef.current.clientWidth;
+    const clampedPage = Math.max(0, Math.min(SERVICE_PAGES.length - 1, pageIndex));
+    const targetLeft = clampedPage * scrollRef.current.clientWidth;
     scrollRef.current.scrollTo({
       left: targetLeft,
       behavior: 'smooth',
     });
-    setCurrentPage(pageIndex);
+    setCurrentPage(clampedPage);
   };
 
-  // Mouse drag to scroll handlers for desktop preview
+  // --- TOUCH GESTURES (Mobile) for instant response ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!scrollRef.current) return;
+    const touch = e.touches[0];
+    dragStartX.current = touch.clientX;
+    dragStartY.current = touch.clientY;
+    dragScrollLeft.current = scrollRef.current.scrollLeft;
+    isHorizontalSwipe.current = null;
+    hasMovedPastThreshold.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!scrollRef.current) return;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - dragStartX.current;
+    const diffY = touch.clientY - dragStartY.current;
+
+    // Detect gesture direction early on
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
+        isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+    }
+
+    if (isHorizontalSwipe.current) {
+      hasMovedPastThreshold.current = true;
+      setIsDragging(true);
+      // Directly follow finger without scroll-smooth lag
+      scrollRef.current.scrollLeft = dragScrollLeft.current - diffX;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!scrollRef.current) return;
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - dragStartX.current;
+    
+    setIsDragging(false);
+
+    if (hasMovedPastThreshold.current && isHorizontalSwipe.current) {
+      // Responsive threshold of 35px for quick, effortless swiping
+      if (diffX < -35 && currentPage < SERVICE_PAGES.length - 1) {
+        goToPage(currentPage + 1);
+      } else if (diffX > 35 && currentPage > 0) {
+        goToPage(currentPage - 1);
+      } else {
+        goToPage(currentPage);
+      }
+    }
+    
+    // Reset flags
+    isHorizontalSwipe.current = null;
+    setTimeout(() => {
+      hasMovedPastThreshold.current = false;
+    }, 50);
+  };
+
+  // --- MOUSE DRAG GESTURES (Desktop) ---
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
+    dragStartX.current = e.pageX;
+    dragScrollLeft.current = scrollRef.current.scrollLeft;
+    hasMovedPastThreshold.current = false;
     setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeftState(scrollRef.current.scrollLeft);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    scrollRef.current.scrollLeft = scrollLeftState - walk;
+    const diffX = e.pageX - dragStartX.current;
+    if (Math.abs(diffX) > 6) {
+      hasMovedPastThreshold.current = true;
+      scrollRef.current.scrollLeft = dragScrollLeft.current - diffX;
+    }
   };
 
-  const handleMouseUpOrLeave = () => {
+  const handleMouseUpOrLeave = (e: React.MouseEvent) => {
     if (!isDragging || !scrollRef.current) return;
     setIsDragging(false);
-    // Snap to nearest page
-    const { scrollLeft, clientWidth } = scrollRef.current;
-    const targetPage = Math.round(scrollLeft / clientWidth);
-    goToPage(targetPage);
+    const diffX = e.pageX - dragStartX.current;
+
+    if (hasMovedPastThreshold.current) {
+      if (diffX < -40 && currentPage < SERVICE_PAGES.length - 1) {
+        goToPage(currentPage + 1);
+      } else if (diffX > 40 && currentPage > 0) {
+        goToPage(currentPage - 1);
+      } else {
+        goToPage(currentPage);
+      }
+    }
+    setTimeout(() => {
+      hasMovedPastThreshold.current = false;
+    }, 50);
   };
 
   return (
@@ -140,22 +217,26 @@ const ServiceAssistanceCardsComponent: React.FC<ServiceAssistanceCardsProps> = (
         <div
           ref={scrollRef}
           onScroll={handleScroll}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
-          className={`flex w-full overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-1 ${
+          className={`flex w-full overflow-x-auto no-scrollbar py-1 ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           style={{
+            touchAction: 'pan-y',
+            overscrollBehaviorX: 'contain',
             WebkitOverflowScrolling: 'touch',
-            scrollSnapType: 'x mandatory',
           }}
         >
           {SERVICE_PAGES.map((pageGroup, pageIdx) => (
             <div
               key={pageIdx}
-              className="w-full shrink-0 snap-start grid grid-cols-2 gap-2.5 px-0.5"
+              className="w-full shrink-0 grid grid-cols-2 gap-2.5 px-0.5"
             >
               {pageGroup.map((item) => {
                 const Icon = item.icon;
@@ -163,8 +244,9 @@ const ServiceAssistanceCardsComponent: React.FC<ServiceAssistanceCardsProps> = (
                 return (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => {
-                      if (!isDragging) {
+                      if (!hasMovedPastThreshold.current) {
                         onSelectService?.(item.id);
                         if (item.id === 'blokir-kartu-bca' && onOpenBlokir) {
                           onOpenBlokir();

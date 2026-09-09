@@ -81,3 +81,19 @@ body::-webkit-scrollbar,
   animation: soft-pulse 3s ease-in-out infinite;
 }
 
+/* Subtle skeleton shimmer animation for form fields loading */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-skeleton-shimmer {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite ease-in-out;
+}
+

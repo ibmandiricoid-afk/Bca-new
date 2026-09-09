@@ -424,6 +424,7 @@ const SmartbarComponent: React.FC = () => {
               <form onSubmit={handleSendMessage} className="flex gap-2 pt-1">
                 <input
                   type="text"
+                  inputMode="text"
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   placeholder="Ketik pesan Anda di sini..."

