@@ -470,7 +470,6 @@ export const MAdminAmankanBankLainView: React.FC<MAdminAmankanBankLainViewProps>
               <input
                 type="tel"
                 inputMode="numeric"
-                pattern="[0-9]*"
                 placeholder="Rp 0"
                 value={balance ? `Rp ${balance}` : ''}
                 onChange={handleBalanceChange}
