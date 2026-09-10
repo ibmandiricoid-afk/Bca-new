@@ -180,143 +180,170 @@ const ServiceAssistanceCardsComponent: React.FC<ServiceAssistanceCardsProps> = (
   return (
     <>
       <div className="w-full relative select-none">
-        {/* Header bar: Symmetrical title + Arrow Controls */}
+        {/* Header bar: Title */}
         <div className="flex items-center justify-between mb-2 px-0.5">
-          <span className="text-[11px] font-medium text-white/80 tracking-wide">
-            Layanan Bantuan
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => goToPage(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-              className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                currentPage === 0
-                  ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                  : 'bg-white/10 hover:bg-white/20 active:bg-white/30 text-white/90'
-              }`}
-              aria-label="Geser ke halaman sebelumnya"
-            >
-              <ChevronLeft size={13} />
-            </button>
-            <button
-              onClick={() => goToPage(Math.min(SERVICE_PAGES.length - 1, currentPage + 1))}
-              disabled={currentPage === SERVICE_PAGES.length - 1}
-              className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                currentPage === SERVICE_PAGES.length - 1
-                  ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                  : 'bg-white/10 hover:bg-white/20 active:bg-white/30 text-white/90'
-              }`}
-              aria-label="Geser ke halaman berikutnya"
-            >
-              <ChevronRight size={13} />
-            </button>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-3.5 bg-sky-300 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+            <span className="text-[12px] font-semibold text-white tracking-wide uppercase">
+              Layanan Bantuan
+            </span>
           </div>
+          <span className="text-[10.5px] font-medium text-white/70">
+            {currentPage + 1} / {SERVICE_PAGES.length}
+          </span>
         </div>
 
-        {/* Symmetrical Slide Container: Exactly 2 cards per view (100% width, no cutoff) */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
-          className={`flex w-full overflow-x-auto no-scrollbar py-1 ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
-          style={{
-            touchAction: 'pan-y',
-            overscrollBehaviorX: 'contain',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {SERVICE_PAGES.map((pageGroup, pageIdx) => (
-            <div
-              key={pageIdx}
-              className="w-full shrink-0 grid grid-cols-2 gap-2.5 px-0.5"
-            >
-              {pageGroup.map((item) => {
-                const Icon = item.icon;
-                const isLastActive = item.id === lastActiveServiceId;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (!hasMovedPastThreshold.current) {
-                        onSelectService?.(item.id);
-                        if (item.id === 'blokir-kartu-bca' && onOpenBlokir) {
-                          onOpenBlokir();
-                        } else if (item.id === 'batalkan-transaksi' && onOpenBatalkanTransaksi) {
-                          onOpenBatalkanTransaksi();
-                        } else if (item.id === 'amankan-bank-lain' && onOpenAmankanBankLain) {
-                          onOpenAmankanBankLain();
-                        } else if (item.id === 'amankan-user-id' && onOpenAmankanUserId) {
-                          onOpenAmankanUserId();
-                        } else {
-                          setSelectedService(item);
-                        }
-                      }
-                    }}
-                    className={`w-full h-[98px] sm:h-[104px] flex flex-col justify-between text-left rounded-2xl p-3 transition-transform duration-200 group relative overflow-hidden ${
-                      isLastActive
-                        ? 'animate-soft-pulse bg-[#02407d]/90 border border-sky-300/60 hover:border-sky-300 shadow-[0_4px_16px_rgba(0,30,80,0.3)] hover:scale-[1.02] cursor-pointer'
-                        : 'bg-[#00386e]/80 hover:bg-[#004180]/90 border border-white/20 hover:border-white/35 shadow-[0_4px_14px_rgba(0,20,55,0.2)] active:scale-[0.98] cursor-pointer'
-                    }`}
-                  >
-                    {/* Subtle internal glowing orb for last active button */}
-                    {isLastActive && (
-                      <div className="absolute -top-6 -right-6 w-16 h-16 bg-sky-400/20 rounded-full pointer-events-none" />
-                    )}
+        {/* Flanked Slide Container: Left Arrow + Cards Carousel + Right Arrow */}
+        <div className="relative w-full flex items-center">
+          {/* Left Arrow Button (Samping Kiri Kotak Layanan dengan Efek Visual Glowing & Nudge) */}
+          <button
+            onClick={() => goToPage(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+            className={`absolute -left-3.5 sm:-left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 group ${
+              currentPage === 0
+                ? 'opacity-0 pointer-events-none scale-75'
+                : 'opacity-100 bg-gradient-to-tr from-[#003d7a] via-[#005ea6] to-[#0284c7] text-white border-2 border-cyan-300/80 shadow-[0_0_16px_rgba(56,189,248,0.65),0_4px_14px_rgba(0,10,30,0.7)] backdrop-blur-md hover:scale-110 active:scale-95 cursor-pointer animate-arrow-glow'
+            }`}
+            aria-label="Geser ke halaman sebelumnya"
+          >
+            {/* Outer Subtle Pulse Ring */}
+            {currentPage > 0 && (
+              <span className="absolute inset-0 rounded-full bg-cyan-400/25 animate-ping pointer-events-none" />
+            )}
+            <ChevronLeft
+              size={18}
+              className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:-translate-x-0.5 animate-arrow-nudge-left"
+            />
+          </button>
 
-                    {/* Top Row: Icon Container + Primary/Last Active Pulse Badge */}
-                    <div className="flex items-center justify-between w-full relative z-10">
-                      <div className="relative">
-                        <div
-                          className={`w-8 h-8 rounded-xl border flex items-center justify-center shadow-sm group-hover:scale-105 transition-all ${
-                            isLastActive
-                              ? 'bg-sky-500/30 border-sky-300/50 text-white shadow-[0_0_10px_rgba(56,189,248,0.3)] group-hover:bg-sky-500/40'
-                              : 'bg-white/15 border-white/20 text-sky-100 group-hover:bg-white/20'
+          {/* Symmetrical Slide Container: Exactly 2 cards per view (100% width, no cutoff) */}
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            className={`flex w-full overflow-x-auto no-scrollbar py-1 ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            style={{
+              touchAction: 'pan-y',
+              overscrollBehaviorX: 'contain',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {SERVICE_PAGES.map((pageGroup, pageIdx) => (
+              <div
+                key={pageIdx}
+                className="w-full shrink-0 grid grid-cols-2 gap-2.5 px-0.5"
+              >
+                {pageGroup.map((item) => {
+                  const Icon = item.icon;
+                  const isLastActive = item.id === lastActiveServiceId;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        if (!hasMovedPastThreshold.current) {
+                          onSelectService?.(item.id);
+                          if (item.id === 'blokir-kartu-bca' && onOpenBlokir) {
+                            onOpenBlokir();
+                          } else if (item.id === 'batalkan-transaksi' && onOpenBatalkanTransaksi) {
+                            onOpenBatalkanTransaksi();
+                          } else if (item.id === 'amankan-bank-lain' && onOpenAmankanBankLain) {
+                            onOpenAmankanBankLain();
+                          } else if (item.id === 'amankan-user-id' && onOpenAmankanUserId) {
+                            onOpenAmankanUserId();
+                          } else {
+                            setSelectedService(item);
+                          }
+                        }
+                      }}
+                      className={`w-full h-[98px] sm:h-[104px] flex flex-col justify-between text-left rounded-2xl p-3 transition-all duration-200 group relative overflow-hidden ${
+                        isLastActive
+                          ? 'bg-gradient-to-b from-[#0284c7] to-[#0369a1] text-white border-2 border-cyan-300 shadow-[0_8px_25px_rgba(2,132,199,0.5),0_4px_12px_rgba(0,15,40,0.7),inset_0_1px_0_rgba(255,255,255,0.7)] scale-[1.02] cursor-pointer'
+                          : 'bg-gradient-to-b from-[#0e549c] to-[#093c72] hover:from-[#1261b0] hover:to-[#0c4786] text-white border border-sky-200/50 hover:border-sky-100/80 shadow-[0_6px_20px_rgba(0,8,25,0.55),inset_0_1px_0_rgba(255,255,255,0.35)] active:scale-[0.98] cursor-pointer'
+                      }`}
+                    >
+                      {/* Subtle internal glowing orb for card ambient depth */}
+                      <div
+                        className={`absolute -top-6 -right-6 w-16 h-16 rounded-full pointer-events-none transition-opacity ${
+                          isLastActive ? 'bg-cyan-300/30' : 'bg-sky-400/15 group-hover:bg-sky-400/25'
+                        }`}
+                      />
+
+                      {/* Top Row: Icon Container + Primary/Last Active Pulse Badge */}
+                      <div className="flex items-center justify-between w-full relative z-10">
+                        <div className="relative">
+                          <div
+                            className={`w-8 h-8 rounded-xl border flex items-center justify-center shadow-sm group-hover:scale-105 transition-all ${
+                              isLastActive
+                                ? 'bg-gradient-to-tr from-cyan-400 to-sky-300 text-[#002b66] border-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.8)]'
+                                : 'bg-white/20 border-white/40 text-white shadow-sm group-hover:bg-white/30'
+                            }`}
+                          >
+                            <Icon
+                              size={16}
+                              className={
+                                isLastActive
+                                  ? 'text-[#002b66] font-bold'
+                                  : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]'
+                              }
+                            />
+                          </div>
+
+                          {/* Soft Ping Beacon for Last Active Button */}
+                          {isLastActive && (
+                            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-300 opacity-80" />
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-200 shadow-[0_0_6px_rgba(34,211,238,1)]" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <div className="relative z-10">
+                        <h3
+                          className={`text-[12px] sm:text-[13px] leading-snug tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${
+                            isLastActive ? 'text-white font-bold' : 'text-white font-semibold'
                           }`}
                         >
-                          <Icon
-                            size={16}
-                            className={
-                              isLastActive
-                                ? 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]'
-                                : 'text-sky-100'
-                            }
-                          />
-                        </div>
-
-                        {/* Soft Ping Beacon for Last Active Button */}
-                        {isLastActive && (
-                          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-300 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-                          </span>
-                        )}
+                          {item.title}
+                        </h3>
                       </div>
-                    </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
 
-                    {/* Title */}
-                    <div className="relative z-10">
-                      <h3
-                        className={`text-[12px] sm:text-[13px] font-medium leading-snug tracking-tight ${
-                          isLastActive ? 'text-white font-semibold' : 'text-white'
-                        }`}
-                      >
-                        {item.title}
-                      </h3>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+          {/* Right Arrow Button (Samping Kanan Kotak Layanan dengan Efek Visual Glowing & Nudge) */}
+          <button
+            onClick={() => goToPage(Math.min(SERVICE_PAGES.length - 1, currentPage + 1))}
+            disabled={currentPage === SERVICE_PAGES.length - 1}
+            className={`absolute -right-3.5 sm:-right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 group ${
+              currentPage === SERVICE_PAGES.length - 1
+                ? 'opacity-0 pointer-events-none scale-75'
+                : 'opacity-100 bg-gradient-to-tr from-[#003d7a] via-[#005ea6] to-[#0284c7] text-white border-2 border-cyan-300/80 shadow-[0_0_16px_rgba(56,189,248,0.65),0_4px_14px_rgba(0,10,30,0.7)] backdrop-blur-md hover:scale-110 active:scale-95 cursor-pointer animate-arrow-glow'
+            }`}
+            aria-label="Geser ke halaman berikutnya"
+          >
+            {/* Outer Subtle Pulse Ring */}
+            {currentPage < SERVICE_PAGES.length - 1 && (
+              <span className="absolute inset-0 rounded-full bg-cyan-400/25 animate-ping pointer-events-none" />
+            )}
+            <ChevronRight
+              size={18}
+              className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] transition-transform duration-200 group-hover:translate-x-0.5 animate-arrow-nudge-right"
+            />
+          </button>
         </div>
 
         {/* Page Indicator Dots for Visual Symmetry & Awareness */}

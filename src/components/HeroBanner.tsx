@@ -70,107 +70,64 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       id="hero"
       className="relative min-h-[100dvh] w-full flex flex-col justify-between px-6 pt-16 pb-16 text-white overflow-hidden"
       style={{
-        background: 'linear-gradient(175deg, #00569e 0%, #004587 30%, #00346c 65%, #00214a 100%)',
+        background: 'linear-gradient(175deg, #005699 0%, #00427c 45%, #002d59 100%)',
       }}
     >
-      {/* 1. Ambient Lighting & Glow Orbs */}
+      {/* 1. Subtle Ambient Spotlight & Depth */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(circle at 85% 15%, rgba(0, 180, 255, 0.38) 0%, transparent 48%),
-            radial-gradient(circle at 15% 70%, rgba(0, 102, 230, 0.32) 0%, transparent 52%),
-            radial-gradient(circle at 50% 45%, rgba(0, 225, 255, 0.12) 0%, transparent 55%)
+            radial-gradient(circle at 85% 12%, rgba(56, 189, 248, 0.16) 0%, transparent 55%),
+            radial-gradient(circle at 15% 85%, rgba(14, 165, 233, 0.10) 0%, transparent 50%)
           `,
         }}
       />
 
-      {/* 2. Micro Dot Grid / Security Watermark Pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.14]">
+      {/* 2. Clean Minimalist Security Watermark Fine Lines Pattern */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05]">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern id="bca-dot-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="1" fill="#ffffff" />
+            <pattern id="bca-fintech-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M0 32 L32 0 M0 0 L32 32" stroke="#ffffff" strokeWidth="0.6" fill="none" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#bca-dot-grid)" />
+          <rect width="100%" height="100%" fill="url(#bca-fintech-grid)" />
         </svg>
       </div>
 
-      {/* 3. Dynamic Curved Wave Ribbons (BCA Signature Banking Waves) */}
+      {/* 3. Smooth & Minimalist Corporate Swoop Ribbon (Single Clean Arc) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <svg
-          className="absolute -right-20 -top-10 w-[140%] h-[80%] opacity-40 sm:opacity-50"
-          viewBox="0 0 800 600"
+          className="absolute -right-12 -top-12 w-[120%] h-[70%] opacity-25"
+          viewBox="0 0 700 500"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M-50,180 C200,80 350,320 650,160 C780,100 880,190 920,240"
-            stroke="url(#wave-grad-1)"
+            d="M 50 80 C 260 40 440 240 750 140"
+            stroke="url(#corp-swoop-1)"
             strokeWidth="2.5"
             strokeLinecap="round"
           />
           <path
-            d="M-80,240 C160,140 380,380 690,210 C800,150 900,260 950,300"
-            stroke="url(#wave-grad-2)"
-            strokeWidth="1.8"
+            d="M 120 130 C 310 90 480 300 780 190"
+            stroke="url(#corp-swoop-2)"
+            strokeWidth="1.2"
             strokeLinecap="round"
           />
-          <path
-            d="M-20,120 C240,40 320,260 620,120 C740,60 840,140 880,180"
-            stroke="url(#wave-grad-1)"
-            strokeWidth="1"
-            strokeDasharray="4 6"
-          />
-          <path
-            d="M-100,320 C120,220 340,460 660,290 C780,220 890,320 940,360"
-            stroke="url(#wave-grad-2)"
-            strokeWidth="1.2"
-          />
-          {/* Subtle glowing curved band fill */}
-          <path
-            d="M-50,180 C200,80 350,320 650,160 C780,100 880,190 920,240 L920,290 C880,240 780,150 650,210 C350,370 200,130 -50,230 Z"
-            fill="url(#ribbon-fill)"
-            opacity="0.35"
-          />
-
           <defs>
-            <linearGradient id="wave-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00e5ff" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#2997ff" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.1" />
+            <linearGradient id="corp-swoop-1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+              <stop offset="60%" stopColor="#0284c7" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
             </linearGradient>
-            <linearGradient id="wave-grad-2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="corp-swoop-2" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
-              <stop offset="40%" stopColor="#00b4d8" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#0077b6" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="ribbon-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00b4d8" stopOpacity="0.25" />
-              <stop offset="60%" stopColor="#0077b6" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#003c77" stopOpacity="0" />
+              <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
             </linearGradient>
           </defs>
-        </svg>
-
-        {/* Lower Wave Flow (behind cards section) */}
-        <svg
-          className="absolute -left-20 bottom-10 w-[140%] h-[50%] opacity-30"
-          viewBox="0 0 800 400"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M-40,280 C200,180 420,340 700,220 C820,170 900,240 960,270"
-            stroke="url(#wave-grad-1)"
-            strokeWidth="2"
-          />
-          <path
-            d="M-20,330 C220,240 400,390 680,270 C800,220 880,290 940,320"
-            stroke="url(#wave-grad-2)"
-            strokeWidth="1.2"
-          />
         </svg>
       </div>
 

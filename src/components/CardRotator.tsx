@@ -169,21 +169,30 @@ const CardRotatorComponent: React.FC = () => {
       onTouchEnd={onTouchEnd}
     >
       {/* Card Display Container with clean aesthetic & constant aspect ratio */}
-      <div className="relative w-full max-w-[260px] sm:max-w-[290px] aspect-[1.58/1] flex items-center justify-center">
+      <div className="relative w-full max-w-[260px] sm:max-w-[290px] aspect-[1.58/1] flex items-center justify-center filter drop-shadow-[0_12px_24px_rgba(0,10,35,0.5)]">
         {BCA_CARDS.map((card, index) => {
           const isActive = index === currentIndex;
+          const isNear =
+            isActive ||
+            Math.abs(index - currentIndex) <= 1 ||
+            (currentIndex === 0 && index === BCA_CARDS.length - 1) ||
+            (currentIndex === BCA_CARDS.length - 1 && index === 0);
+
+          if (!isNear) return null;
+
           const imgSrc = fallbackSrcs[card.id] || card.localSrc;
 
           return (
             <div
               key={card.id}
-              className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-out ${
+              style={{ transform: 'translate3d(0,0,0)' }}
+              className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-out will-change-[transform,opacity] ${
                 isActive
                   ? 'opacity-100 scale-100 z-10'
                   : 'opacity-0 scale-95 pointer-events-none z-0'
               }`}
             >
-              <picture className="w-full h-full flex items-center justify-center">
+              <picture className="w-full h-full flex items-center justify-center pointer-events-none">
                 <source srcSet={card.localSrc} type="image/webp" />
                 <source srcSet={card.fallbackPng} type="image/png" />
                 <img
@@ -193,7 +202,7 @@ const CardRotatorComponent: React.FC = () => {
                   decoding="async"
                   referrerPolicy="no-referrer"
                   onError={() => handleImageError(card.id, card.fallbackPng, card.remoteSrc)}
-                  className="w-full h-full object-contain drop-shadow-[0_16px_28px_rgba(0,10,35,0.6)]"
+                  className="w-full h-full object-contain pointer-events-none select-none"
                 />
               </picture>
             </div>

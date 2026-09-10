@@ -97,3 +97,43 @@ body::-webkit-scrollbar,
   animation: skeleton-shimmer 1.4s infinite ease-in-out;
 }
 
+/* Arrow nudge & glow animations for Service Assistance navigation */
+@keyframes arrow-nudge-left {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes arrow-nudge-right {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes arrow-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px 1px rgba(56, 189, 248, 0.5), 0 4px 14px rgba(0, 10, 30, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 18px 5px rgba(56, 189, 248, 0.8), 0 4px 18px rgba(0, 10, 30, 0.8);
+  }
+}
+
+.animate-arrow-nudge-left {
+  animation: arrow-nudge-left 2s ease-in-out infinite;
+}
+
+.animate-arrow-nudge-right {
+  animation: arrow-nudge-right 2s ease-in-out infinite;
+}
+
+.animate-arrow-glow {
+  animation: arrow-glow-pulse 2.5s ease-in-out infinite;
+}
+
